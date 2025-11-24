@@ -1,0 +1,21 @@
+# In llm-project directory
+cat > .gitignore << EOF
+# Virtual environment
+venv/
+env/
+
+# Data files
+data/
+*.pkl
+
+# Environment variables
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# OS
+.DS_Store
+EOF

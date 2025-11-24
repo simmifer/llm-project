@@ -92,7 +92,7 @@ def process_pdfs(pdf_directory: str) -> List[Dict[str, str]]:
 
 if __name__ == "__main__":
     # Test with the project PDFs
-    pdf_dir = "/mnt/project"
+    pdf_dir = "data"
     chunks = process_pdfs(pdf_dir)
     
     # Show a sample
