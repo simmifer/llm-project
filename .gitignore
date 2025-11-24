@@ -5,8 +5,8 @@ venv/
 env/
 
 # Data files
-data/
-*.pkl
+# data/
+# *.pkl
 
 # Environment variables
 .env
