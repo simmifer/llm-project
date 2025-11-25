@@ -5,6 +5,9 @@ A simple web interface for the RAG system.
 Run with: streamlit run app.py
 """
 
+from dotenv import load_dotenv
+load_dotenv()  # Load .env file
+
 import streamlit as st
 import os
 from embeddings import EmbeddingStore
@@ -17,6 +20,20 @@ st.set_page_config(
     page_icon="🤖",
     layout="wide"
 )
+
+# Custom CSS for better styling
+st.markdown("""
+    <style>
+    .stExpander {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        margin-bottom: 10px;
+    }
+    .stTextInput > div > div > input {
+        border-radius: 8px;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 # Title
 st.title("🤖 ML Concept Explainer")
@@ -69,14 +86,51 @@ if st.session_state.ready:
             st.markdown("## Answer")
             st.markdown(result['answer'])
             
-            # Display sources
-            st.markdown("---")
-            st.markdown("## Sources")
-            st.caption(f"Retrieved {result['retrieved_count']} relevant chunks")
+            # Display token usage
+            if 'tokens' in result:
+                st.markdown("---")
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Input Tokens", f"{result['tokens']['input']:,}")
+                with col2:
+                    st.metric("Output Tokens", f"{result['tokens']['output']:,}")
+                with col3:
+                    # Calculate cost (approximate)
+                    cost = (result['tokens']['input'] / 1_000_000 * 3.0) + (result['tokens']['output'] / 1_000_000 * 15.0)
+                    st.metric("Cost", f"${cost:.4f}")
             
-            for i, source in enumerate(result['sources'], 1):
-                with st.expander(f"📄 {source['source']} (similarity: {source['similarity']:.3f})"):
-                    st.text(source['text'])
+            # Display inline source badges
+            st.markdown("---")
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                st.markdown("### 📚 Sources Used")
+                st.caption(f"Retrieved {result['retrieved_count']} relevant chunks • Click to expand")
+            with col2:
+                expand_all = st.checkbox("Expand all", value=False)
+            
+            # Create columns for source badges
+            cols = st.columns(min(len(result['sources']), 3))
+            
+            # Display each source in an expandable card
+            for i, source in enumerate(result['sources']):
+                col_idx = i % 3
+                with cols[col_idx]:
+                    # Color-code by similarity score
+                    if source['similarity'] > 0.4:
+                        badge_color = "🟢"
+                        badge_label = "High"
+                    elif source['similarity'] > 0.3:
+                        badge_color = "🟡"
+                        badge_label = "Med"
+                    else:
+                        badge_color = "🟠"
+                        badge_label = "Low"
+                    
+                    with st.expander(f"{badge_color} Source {i+1} • {badge_label} ({source['similarity']:.2f})", expanded=expand_all):
+                        st.caption(f"**{source['source']}**")
+                        st.caption(f"Chunk #{source['chunk_id']} • Similarity: {source['similarity']:.3f}")
+                        st.markdown("---")
+                        st.text(source['text'])
         else:
             st.warning("Please enter a question.")
     

@@ -105,6 +105,22 @@ else:
     print("   Or create .env file with your key")
     print("   (This is only needed for the full RAG system)")
 
+# Test 6: Query Logger
+print("\n6. Testing query logger...")
+try:
+    from query_logger import QueryLogger
+    
+    logger = QueryLogger("test_query_logs.db")
+    print("   ✓ Query logger initialized")
+    
+    # Clean up test database
+    import os
+    if os.path.exists("test_query_logs.db"):
+        os.remove("test_query_logs.db")
+    
+except Exception as e:
+    print(f"   ⚠️  Query logger test failed: {e}")
+
 # Summary
 print("\n" + "=" * 60)
 print("Test Summary:")

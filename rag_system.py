@@ -12,6 +12,7 @@ import anthropic
 import os
 from typing import List, Dict, Tuple
 from embeddings import EmbeddingStore
+from query_logger import QueryLogger
 
 
 class RAGSystem:
@@ -19,15 +20,23 @@ class RAGSystem:
     Complete RAG pipeline: query → retrieve → generate
     """
     
-    def __init__(self, embedding_store: EmbeddingStore, api_key: str = None):
+    def __init__(self, embedding_store: EmbeddingStore, api_key: str = None, enable_logging: bool = True):
         """
         Initialize with an embedding store and Claude API key.
         
         Note: For this demo, we're using Claude, but you could use
         OpenAI, Llama, or any other LLM.
+        
+        Args:
+            embedding_store: The embedding store for retrieval
+            api_key: Claude API key (or from environment)
+            enable_logging: Whether to log queries to database
         """
         self.store = embedding_store
         self.client = anthropic.Anthropic(api_key=api_key or os.environ.get("ANTHROPIC_API_KEY"))
+        self.enable_logging = enable_logging
+        if enable_logging:
+            self.logger = QueryLogger()
         
     def retrieve(self, query: str, top_k: int = 5) -> List[Tuple[Dict, float]]:
         """
@@ -58,17 +67,14 @@ class RAGSystem:
             })
         
         # Create prompt for Claude
-        prompt = f"""You are a helpful AI assistant answering questions about machine learning concepts based on research papers and articles.
+        prompt = f"""Based on these research paper excerpts, answer the question with citations.
 
-Here are the most relevant excerpts from the documents:
+                Context:
+                {context}
 
-{context}
+                Question: {query}
 
-Based on these excerpts, please answer the following question. Be specific and cite which sources support your answer.
-
-Question: {query}
-
-Answer:"""
+                Answer concisely with source citations:"""
         
         # Call Claude API
         message = self.client.messages.create(
@@ -81,11 +87,31 @@ Answer:"""
         
         answer = message.content[0].text
         
+        # Extract token usage from API response
+        input_tokens = message.usage.input_tokens
+        output_tokens = message.usage.output_tokens
+        
+        # Log the query if logging is enabled
+        if self.enable_logging:
+            self.logger.log_query(
+                query=query,
+                answer=answer,
+                sources=sources,
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                model="claude-sonnet-4-20250514"
+            )
+        
         return {
             'query': query,
             'answer': answer,
             'sources': sources,
-            'retrieved_count': len(retrieved_chunks)
+            'retrieved_count': len(retrieved_chunks),
+            'tokens': {
+                'input': input_tokens,
+                'output': output_tokens,
+                'total': input_tokens + output_tokens
+            }
         }
     
     def ask(self, query: str, top_k: int = 5) -> Dict:

@@ -111,7 +111,7 @@ if __name__ == "__main__":
     
     # Process PDFs
     print("Step 1: Processing PDFs...")
-    chunks = process_pdfs("/mnt/project")
+    chunks = process_pdfs("data")
     
     # Create embeddings
     print("\nStep 2: Creating embeddings...")
